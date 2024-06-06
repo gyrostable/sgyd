@@ -1,13 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import {AccessControlDefaultAdminRules} from "oz/access/extensions/AccessControlDefaultAdminRules.sol";
-import {ERC4626, ERC20, IERC20} from "oz/token/ERC20/extensions/ERC4626.sol";
+import {AccessControlDefaultAdminRulesUpgradeable} from
+    "ozu/access/extensions/AccessControlDefaultAdminRulesUpgradeable.sol";
+import {IERC20} from "oz/token/ERC20/IERC20.sol";
 import {SafeERC20} from "oz/token/ERC20/utils/SafeERC20.sol";
+import {ERC4626Upgradeable} from "ozu/token/ERC20/extensions/ERC4626Upgradeable.sol";
+import {UUPSUpgradeable} from "ozu/proxy/utils/UUPSUpgradeable.sol";
 
 import {Stream} from "./libraries/Stream.sol";
 
-contract SGYD is ERC4626, AccessControlDefaultAdminRules {
+contract SGYD is ERC4626Upgradeable, AccessControlDefaultAdminRulesUpgradeable, UUPSUpgradeable {
     using Stream for Stream.T;
     using SafeERC20 for IERC20;
 
@@ -27,13 +30,20 @@ contract SGYD is ERC4626, AccessControlDefaultAdminRules {
         _;
     }
 
-    constructor(IERC20 gyd, address owner_, address distributor_)
-        ERC20("Savings GYD", "sGYD")
-        ERC4626(gyd)
-        AccessControlDefaultAdminRules(0, owner_)
-    {
-        _grantRole(_DISTRIBUTOR_ROLE, distributor_);
+    constructor() {
+        _disableInitializers();
     }
+
+    function initialize(IERC20 gyd, address owner_, address distributor) external initializer {
+        __UUPSUpgradeable_init();
+        __ERC4626_init(gyd);
+        __ERC20_init("Savings GYD", "sGYD");
+        __AccessControlDefaultAdminRules_init(0, owner_);
+        _grantRole(_DISTRIBUTOR_ROLE, distributor);
+    }
+
+    /// @notice Can only be upgraded by the owner
+    function _authorizeUpgrade(address v) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
     /// @notice Adds a GYD reward stream to the contract
     /// @param stream Stream to add

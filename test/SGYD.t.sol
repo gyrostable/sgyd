@@ -3,9 +3,10 @@ pragma solidity ^0.8.24;
 
 import {Test} from "forge-std/Test.sol";
 import {IAccessControl} from "oz/access/AccessControl.sol";
+import {ERC1967Proxy} from "oz/proxy/ERC1967/ERC1967Proxy.sol";
+
 import {MintableERC20} from "./support/MintableERC20.sol";
 import {Stream} from "../src/libraries/Stream.sol";
-
 import {SGYD} from "../src/SGYD.sol";
 
 contract SGYDTest is Test {
@@ -19,7 +20,8 @@ contract SGYDTest is Test {
 
     function setUp() public {
         gyd = new MintableERC20("GYD", "GYD");
-        sgyd = new SGYD(gyd, owner, distributor);
+        bytes memory initData = abi.encodeWithSelector(SGYD.initialize.selector, address(gyd), owner, distributor);
+        sgyd = SGYD(address(new ERC1967Proxy(address(new SGYD()), initData)));
         vm.prank(distributor);
         gyd.approve(address(sgyd), type(uint256).max);
         gyd.mint(address(distributor), 1_000_000_000e18);
