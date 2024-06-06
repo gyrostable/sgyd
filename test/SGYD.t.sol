@@ -4,6 +4,8 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {IAccessControl} from "oz/access/AccessControl.sol";
 import {MintableERC20} from "./support/MintableERC20.sol";
+import {Stream} from "../src/libraries/Stream.sol";
+import {Errors} from "../src/libraries/Errors.sol";
 
 import {SGYD} from "../src/SGYD.sol";
 
@@ -18,7 +20,7 @@ contract SGYDTest is Test {
 
     function setUp() public {
         gyd = new MintableERC20("GYD", "GYD");
-        sgyd = new SGYD(gyd, owner, distributor, streamDuration);
+        sgyd = new SGYD(gyd, owner, distributor);
         vm.prank(distributor);
         gyd.approve(address(sgyd), type(uint256).max);
         gyd.mint(address(distributor), 1_000_000_000e18);
@@ -26,22 +28,30 @@ contract SGYDTest is Test {
 
     function test_initialization() public view {
         assertEq(sgyd.totalStreaming(), 0);
-        assertEq(sgyd.streamDuration(), 7 days);
         assertEq(sgyd.owner(), owner);
         assertTrue(sgyd.hasRole("DISTRIBUTOR_ROLE", distributor));
     }
 
-    function test_receiveYield_invalidSender() public {
+    function test_addStream_invalidSender() public {
         bytes4 err = IAccessControl.AccessControlUnauthorizedAccount.selector;
         vm.expectRevert(abi.encodeWithSelector(err, address(this), bytes32("DISTRIBUTOR_ROLE")));
-        sgyd.receiveYield(100);
+        sgyd.addStream(_makeStream(100));
     }
 
-    function test_receiveYield_validSender() public {
+    function test_addStream_tooManyStream() public {
+        vm.startPrank(distributor);
+        for (uint256 i; i < 10; i++) {
+            sgyd.addStream(_makeStream(100));
+        }
+        vm.expectRevert(Errors.TooManyStreams.selector);
+        sgyd.addStream(_makeStream(100));
+    }
+
+    function test_addStream_validSender() public {
         uint256 amount = 1000e18;
 
         vm.prank(distributor);
-        sgyd.receiveYield(amount);
+        sgyd.addStream(_makeStream(amount));
 
         assertEq(sgyd.totalStreaming(), amount);
         assertEq(sgyd.totalAssets(), 0);
@@ -56,7 +66,8 @@ contract SGYDTest is Test {
         gyd.mint(address(sgyd), amountDonated);
 
         vm.prank(distributor);
-        sgyd.receiveYield(firstAmount);
+        sgyd.addStream(_makeStream(firstAmount));
+        assertEq(sgyd.streams().length, 1);
 
         assertEq(sgyd.totalStreaming(), firstAmount, "totalStreaming [1]");
         assertEq(sgyd.totalAssets(), amountDonated, "totalAssets [1]");
@@ -68,14 +79,22 @@ contract SGYDTest is Test {
         assertEq(sgyd.totalAssets(), amountDonated + firstAmount / 5, "totalAssets [3]");
 
         vm.prank(distributor);
-        sgyd.receiveYield(secondAmount);
+        sgyd.addStream(_makeStream(secondAmount));
+        assertEq(sgyd.streams().length, 2);
 
         uint256 streaming = firstAmount * 4 / 5 + secondAmount;
         assertEq(sgyd.totalAssets(), amountDonated + firstAmount / 5, "totalAssets [4]");
         assertEq(sgyd.totalStreaming(), streaming, "totalStreaming [2]");
-        assertEq(sgyd.streamingEnd(), block.timestamp + 7 days, "streamingEnd");
 
-        skip(7 days / 3);
-        assertEq(sgyd.totalAssets(), amountDonated + firstAmount / 5 + streaming / 3, "totalAssets [5]");
+        skip(7 days / 5);
+        assertEq(sgyd.totalAssets(), amountDonated + firstAmount * 2 / 5 + secondAmount / 5, "totalAssets [5]");
+    }
+
+    function _makeStream(uint256 amount) internal view returns (Stream.T memory) {
+        return Stream.T({
+            amount: uint128(amount),
+            start: uint64(block.timestamp),
+            end: uint64(block.timestamp + streamDuration)
+        });
     }
 }
