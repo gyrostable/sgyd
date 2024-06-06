@@ -30,11 +30,4 @@ library Stream {
     function streaming(T memory self) internal view returns (uint256 streaming_) {
         streaming_ = self.amount - self.streamed();
     }
-
-    function update(T storage self, T memory newStream) internal returns (uint256 streamed_) {
-        streamed_ = self.streamed();
-        self.amount = uint128(self.amount + newStream.amount - streamed_);
-        self.start = newStream.start;
-        self.end = newStream.end;
-    }
 }
