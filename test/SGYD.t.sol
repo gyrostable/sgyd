@@ -58,6 +58,15 @@ contract SGYDTest is Test {
         assertEq(sgyd.totalAssets(), 0);
     }
 
+    function test_addStream_withCleanup() public {
+        vm.startPrank(distributor);
+        for (uint256 i; i < 15; i++) {
+            skip(1 days);
+            sgyd.addStream(_makeStream(100));
+        }
+        vm.assertEq(sgyd.streams().length, 8);
+    }
+
     function test_totalAssets() public {
         uint256 amountDonated = 100e18;
         uint256 firstAmount = 1000e18;
