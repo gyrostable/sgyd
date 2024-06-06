@@ -5,7 +5,6 @@ import {AccessControlDefaultAdminRules} from "oz/access/extensions/AccessControl
 import {ERC4626, ERC20, IERC20} from "oz/token/ERC20/extensions/ERC4626.sol";
 import {SafeERC20} from "oz/token/ERC20/utils/SafeERC20.sol";
 
-import {Errors} from "./libraries/Errors.sol";
 import {Stream} from "./libraries/Stream.sol";
 
 contract SGYD is ERC4626, AccessControlDefaultAdminRules {
@@ -13,6 +12,8 @@ contract SGYD is ERC4626, AccessControlDefaultAdminRules {
     using SafeERC20 for IERC20;
 
     event StreamAdded(address indexed distributor, Stream.T stream);
+
+    error TooManyStreams();
 
     /// @dev We are not expecting that many streams at once
     /// but this is a safe guard to avoid locking the contract because of gas usage
@@ -38,7 +39,7 @@ contract SGYD is ERC4626, AccessControlDefaultAdminRules {
     /// @param stream Stream to add
     function addStream(Stream.T memory stream) external onlyDistributor {
         _cleanStreams();
-        if (_streams.length >= _MAX_STREAMS) revert Errors.TooManyStreams();
+        if (_streams.length >= _MAX_STREAMS) revert TooManyStreams();
 
         IERC20(asset()).safeTransferFrom(msg.sender, address(this), stream.amount);
         _streams.push(stream);

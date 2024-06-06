@@ -5,7 +5,6 @@ import {Test} from "forge-std/Test.sol";
 import {IAccessControl} from "oz/access/AccessControl.sol";
 import {MintableERC20} from "./support/MintableERC20.sol";
 import {Stream} from "../src/libraries/Stream.sol";
-import {Errors} from "../src/libraries/Errors.sol";
 
 import {SGYD} from "../src/SGYD.sol";
 
@@ -43,7 +42,7 @@ contract SGYDTest is Test {
         for (uint256 i; i < 10; i++) {
             sgyd.addStream(_makeStream(100));
         }
-        vm.expectRevert(Errors.TooManyStreams.selector);
+        vm.expectRevert(SGYD.TooManyStreams.selector);
         sgyd.addStream(_makeStream(100));
     }
 
