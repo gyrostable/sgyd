@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import {AccessControlDefaultAdminRulesUpgradeable} from
-    "ozu/access/extensions/AccessControlDefaultAdminRulesUpgradeable.sol";
+import {AccessControlDefaultAdminRulesUpgradeable} from "ozu/access/extensions/AccessControlDefaultAdminRulesUpgradeable.sol";
 import {IERC20} from "oz/token/ERC20/IERC20.sol";
 import {SafeERC20} from "oz/token/ERC20/utils/SafeERC20.sol";
 import {ERC4626Upgradeable} from "ozu/token/ERC20/extensions/ERC4626Upgradeable.sol";
@@ -10,13 +9,18 @@ import {UUPSUpgradeable} from "ozu/proxy/utils/UUPSUpgradeable.sol";
 
 import {Stream} from "./libraries/Stream.sol";
 
-contract SGYD is ERC4626Upgradeable, AccessControlDefaultAdminRulesUpgradeable, UUPSUpgradeable {
+contract sGYD is
+    ERC4626Upgradeable,
+    AccessControlDefaultAdminRulesUpgradeable,
+    UUPSUpgradeable
+{
     using Stream for Stream.T;
     using SafeERC20 for IERC20;
 
     event StreamAdded(address indexed distributor, Stream.T stream);
 
     error TooManyStreams();
+    error InvalidStream();
 
     /// @dev We are not expecting that many streams at once
     /// but this is a safe guard to avoid locking the contract because of gas usage
@@ -34,7 +38,11 @@ contract SGYD is ERC4626Upgradeable, AccessControlDefaultAdminRulesUpgradeable, 
         _disableInitializers();
     }
 
-    function initialize(IERC20 gyd, address owner_, address distributor) external initializer {
+    function initialize(
+        IERC20 gyd,
+        address owner_,
+        address distributor
+    ) external initializer {
         __UUPSUpgradeable_init();
         __ERC4626_init(gyd);
         __ERC20_init("Savings GYD", "sGYD");
@@ -43,15 +51,23 @@ contract SGYD is ERC4626Upgradeable, AccessControlDefaultAdminRulesUpgradeable, 
     }
 
     /// @notice Can only be upgraded by the owner
-    function _authorizeUpgrade(address v) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
+    function _authorizeUpgrade(
+        address v
+    ) internal override onlyRole(DEFAULT_ADMIN_ROLE) {}
 
     /// @notice Adds a GYD reward stream to the contract
     /// @param stream Stream to add
     function addStream(Stream.T memory stream) external onlyDistributor {
+        if (!stream.isValid()) revert InvalidStream();
+
         _cleanStreams();
         if (_streams.length >= _MAX_STREAMS) revert TooManyStreams();
 
-        IERC20(asset()).safeTransferFrom(msg.sender, address(this), stream.amount);
+        IERC20(asset()).safeTransferFrom(
+            msg.sender,
+            address(this),
+            stream.amount
+        );
         _streams.push(stream);
         emit StreamAdded(msg.sender, stream);
     }
@@ -59,7 +75,9 @@ contract SGYD is ERC4626Upgradeable, AccessControlDefaultAdminRulesUpgradeable, 
     /// @notice Returns the total assets currently available
     /// this does not include the GYD that is still streaming
     function totalAssets() public view override returns (uint256 assets) {
-        assets = IERC20(asset()).balanceOf(address(this)) - totalStreaming();
+        assets =
+            IERC20(asset()).balanceOf(address(this)) -
+            totalPendingAmount();
     }
 
     /// @dev some of the streams might not be started or might already have ended
@@ -68,10 +86,10 @@ contract SGYD is ERC4626Upgradeable, AccessControlDefaultAdminRulesUpgradeable, 
         streams_ = _streams;
     }
 
-    /// @notice Returns the total amount of GYD still streaming
-    function totalStreaming() public view returns (uint256 streaming) {
+    /// @notice Returns the total amount of GYD still pending to be streamed
+    function totalPendingAmount() public view returns (uint256 pending) {
         for (uint256 i; i < _streams.length; i++) {
-            streaming += _streams[i].streaming();
+            pending += _streams[i].pendingAmount();
         }
     }
 
