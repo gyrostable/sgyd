@@ -3,28 +3,16 @@ pragma solidity ^0.8.24;
 
 import {AccessControlDefaultAdminRules} from "oz/access/extensions/AccessControlDefaultAdminRules.sol";
 
+import {BaseDistributor} from "./BaseDistributor.sol";
+import {IGydDistributor} from "./interfaces/IGydDistributor.sol";
 import {IGYD} from "./interfaces/IGYD.sol";
-import {ICurveLiquidityGauge} from "./interfaces/ICurveLiquidityGauge.sol";
 import {IsGYD} from "./interfaces/IsGYD.sol";
+import {ICurveLiquidityGauge} from "./interfaces/ICurveLiquidityGauge.sol";
 import {ScaledMath} from "./libraries/ScaledMath.sol";
 import {Stream} from "./libraries/Stream.sol";
 
-contract GydDistributor is AccessControlDefaultAdminRules {
+contract GydDistributor is BaseDistributor, AccessControlDefaultAdminRules {
     using ScaledMath for uint256;
-
-    enum DestinationType {
-        L1SGyd,
-        L1Gauge,
-        CCIPSgyd,
-        CCIPGauge
-    }
-
-    struct Distribution {
-        DestinationType destinationType;
-        address recipient;
-        uint256 amount;
-        bytes data;
-    }
 
     error DistributionTooSoon(bytes32 key);
     error MaxRateExceeded();
@@ -38,7 +26,6 @@ contract GydDistributor is AccessControlDefaultAdminRules {
     bytes32 internal constant _DISTRIBUTION_MANAGER_ROLE =
         "DISTRIBUTION_MANAGER";
 
-    IGYD public immutable gyd;
     uint256 public maxRate;
     uint256 public minimumDistributionInterval;
 
@@ -50,8 +37,7 @@ contract GydDistributor is AccessControlDefaultAdminRules {
         address distributionManager,
         uint256 maxRate_,
         uint256 minimumDistributionInterval_
-    ) AccessControlDefaultAdminRules(0, admin) {
-        gyd = gyd_;
+    ) BaseDistributor(gyd_) AccessControlDefaultAdminRules(0, admin) {
         maxRate = maxRate_;
         minimumDistributionInterval = minimumDistributionInterval_;
         _grantRole(_DISTRIBUTION_MANAGER_ROLE, distributionManager);
@@ -80,14 +66,6 @@ contract GydDistributor is AccessControlDefaultAdminRules {
         _distributeGYD(distribution);
     }
 
-    function batchDistributeGYD(
-        Distribution[] memory distribution
-    ) external onlyRole(_DISTRIBUTION_MANAGER_ROLE) {
-        for (uint256 i = 0; i < distribution.length; i++) {
-            _distributeGYD(distribution[i]);
-        }
-    }
-
     function _distributeGYD(Distribution memory distribution) internal {
         bytes32 distributionKey = _distributionKey(distribution);
         uint256 lastTime = lastDistributionTime[distributionKey];
@@ -97,46 +75,20 @@ contract GydDistributor is AccessControlDefaultAdminRules {
 
         uint256 gydSupply = gyd.totalSupply();
         uint256 maxAmount = gydSupply.mul(maxRate);
-        if (distribution.amount > maxAmount) {
-            revert MaxRateExceeded();
-        }
+        if (distribution.amount > maxAmount) revert MaxRateExceeded();
 
         gyd.mint(address(this), distribution.amount);
         if (distribution.destinationType == DestinationType.L1SGyd) {
-            _distributeL1sGYD(distribution);
+            _distributeTosGYD(distribution);
         } else if (distribution.destinationType == DestinationType.L1Gauge) {
-            _distributeL1gauge(distribution);
+            _distributeToGauge(distribution);
         } else {
-            revert("Unsupported destination type");
+            revert InvalidDestinationType();
         }
 
         lastDistributionTime[distributionKey] = block.timestamp;
 
         emit GydDistributed(distribution);
-    }
-
-    function _distributeL1sGYD(Distribution memory distribution) internal {
-        (uint256 start, uint256 end) = abi.decode(
-            distribution.data,
-            (uint256, uint256)
-        );
-
-        gyd.approve(distribution.recipient, distribution.amount);
-        IsGYD(distribution.recipient).addStream(
-            Stream.T({
-                amount: uint128(distribution.amount),
-                start: uint64(start),
-                end: uint64(end)
-            })
-        );
-    }
-
-    function _distributeL1gauge(Distribution memory distribution) internal {
-        gyd.approve(distribution.recipient, distribution.amount);
-        ICurveLiquidityGauge(distribution.recipient).deposit_reward_token(
-            address(gyd),
-            distribution.amount
-        );
     }
 
     function _distributionKey(
