@@ -7,10 +7,10 @@ import {IGYD} from "./interfaces/IGYD.sol";
 contract L2GydDistributor is BaseDistributor {
     constructor(IGYD gyd_) BaseDistributor(gyd_) {}
 
-    function distributeGYD(Distribution memory distribution) external {
-        if (distribution.destinationType == DestinationType.CCIPSgyd) {
+    function distributeGYD(Distribution memory distribution) external payable {
+        if (distribution.destinationType == DestinationType.SGyd) {
             _distributeTosGYD(distribution);
-        } else if (distribution.destinationType == DestinationType.CCIPGauge) {
+        } else if (distribution.destinationType == DestinationType.Gauge) {
             _distributeToGauge(distribution);
         } else {
             revert InvalidDestinationType();

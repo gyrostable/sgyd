@@ -9,7 +9,7 @@ import {MintableERC20} from "./support/MintableERC20.sol";
 import {Stream} from "../src/libraries/Stream.sol";
 import {sGYD} from "../src/sGYD.sol";
 
-contract SGYDTest is Test {
+contract sGYDTest is Test {
     MintableERC20 public gyd;
     sGYD public sgyd;
 
@@ -20,12 +20,7 @@ contract SGYDTest is Test {
 
     function setUp() public {
         gyd = new MintableERC20("GYD", "GYD");
-        bytes memory initData = abi.encodeWithSelector(
-            sGYD.initialize.selector,
-            address(gyd),
-            owner,
-            distributor
-        );
+        bytes memory initData = abi.encodeWithSelector(sGYD.initialize.selector, address(gyd), owner, distributor);
         sgyd = sGYD(address(new ERC1967Proxy(address(new sGYD()), initData)));
         vm.prank(distributor);
         gyd.approve(address(sgyd), type(uint256).max);
@@ -57,13 +52,7 @@ contract SGYDTest is Test {
 
     function test_addStream_invalidSender() public {
         bytes4 err = IAccessControl.AccessControlUnauthorizedAccount.selector;
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                err,
-                address(this),
-                bytes32("DISTRIBUTOR_ROLE")
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(err, address(this), bytes32("DISTRIBUTOR_ROLE")));
         sgyd.addStream(_makeStream(1e18));
     }
 
@@ -111,47 +100,28 @@ contract SGYDTest is Test {
         assertEq(sgyd.totalAssets(), amountDonated, "totalAssets [1]");
 
         skip(7 days / 10);
-        assertEq(
-            sgyd.totalAssets(),
-            amountDonated + firstAmount / 10,
-            "totalAssets [2]"
-        );
+        assertEq(sgyd.totalAssets(), amountDonated + firstAmount / 10, "totalAssets [2]");
 
         skip(7 days / 10);
-        assertEq(
-            sgyd.totalAssets(),
-            amountDonated + firstAmount / 5,
-            "totalAssets [3]"
-        );
+        assertEq(sgyd.totalAssets(), amountDonated + firstAmount / 5, "totalAssets [3]");
 
         vm.prank(distributor);
         sgyd.addStream(_makeStream(secondAmount));
         assertEq(sgyd.streams().length, 2);
 
         uint256 streaming = (firstAmount * 4) / 5 + secondAmount;
-        assertEq(
-            sgyd.totalAssets(),
-            amountDonated + firstAmount / 5,
-            "totalAssets [4]"
-        );
+        assertEq(sgyd.totalAssets(), amountDonated + firstAmount / 5, "totalAssets [4]");
         assertEq(sgyd.totalPendingAmount(), streaming, "totalStreaming [2]");
 
         skip(7 days / 5);
-        assertEq(
-            sgyd.totalAssets(),
-            amountDonated + (firstAmount * 2) / 5 + secondAmount / 5,
-            "totalAssets [5]"
-        );
+        assertEq(sgyd.totalAssets(), amountDonated + (firstAmount * 2) / 5 + secondAmount / 5, "totalAssets [5]");
     }
 
-    function _makeStream(
-        uint256 amount
-    ) internal view returns (Stream.T memory) {
-        return
-            Stream.T({
-                amount: uint128(amount),
-                start: uint64(block.timestamp),
-                end: uint64(block.timestamp + streamDuration)
-            });
+    function _makeStream(uint256 amount) internal view returns (Stream.T memory) {
+        return Stream.T({
+            amount: uint128(amount),
+            start: uint64(block.timestamp),
+            end: uint64(block.timestamp + streamDuration)
+        });
     }
 }

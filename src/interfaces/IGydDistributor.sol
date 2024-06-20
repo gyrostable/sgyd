@@ -3,10 +3,9 @@ pragma solidity ^0.8.24;
 
 interface IGydDistributor {
     enum DestinationType {
-        L1SGyd,
-        L1Gauge,
-        CCIPSgyd,
-        CCIPGauge
+        SGyd,
+        Gauge,
+        L2
     }
 
     struct Distribution {
@@ -16,5 +15,5 @@ interface IGydDistributor {
         bytes data;
     }
 
-    function distributeGYD(Distribution memory distribution) external;
+    function distributeGYD(Distribution memory distribution) external payable;
 }
