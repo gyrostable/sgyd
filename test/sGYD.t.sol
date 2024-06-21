@@ -1,27 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
-import {Test} from "forge-std/Test.sol";
 import {IAccessControl} from "oz/access/AccessControl.sol";
 import {ERC1967Proxy} from "oz/proxy/ERC1967/ERC1967Proxy.sol";
 
+import {UnitTest} from "./support/UnitTest.sol";
 import {MintableERC20} from "./support/MintableERC20.sol";
+
 import {Stream} from "../src/libraries/Stream.sol";
 import {sGYD} from "../src/sGYD.sol";
 
-contract sGYDTest is Test {
-    MintableERC20 public gyd;
-    sGYD public sgyd;
-
+contract sGYDTest is UnitTest {
     uint64 public streamDuration = 7 days;
 
-    address public distributor = makeAddr("distributor");
-    address public owner = makeAddr("owner");
-
-    function setUp() public {
-        gyd = new MintableERC20("GYD", "GYD");
-        bytes memory initData = abi.encodeWithSelector(sGYD.initialize.selector, address(gyd), owner, distributor);
-        sgyd = sGYD(address(new ERC1967Proxy(address(new sGYD()), initData)));
+    function setUp() public override {
+        super.setUp();
         vm.prank(distributor);
         gyd.approve(address(sgyd), type(uint256).max);
         gyd.mint(address(distributor), 1_000_000_000e18);

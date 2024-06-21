@@ -22,7 +22,7 @@ contract GydDistributor is BaseDistributor, AccessControlDefaultAdminRules {
     event MaxRateChanged(uint256 maxRate);
     event MinimumDistributionIntervalChanged(uint256 minimumDistributionInterval);
 
-    bytes32 internal constant _DISTRIBUTION_MANAGER_ROLE = "DISTRIBUTION_MANAGER";
+    bytes32 public constant DISTRIBUTION_MANAGER_ROLE = "DISTRIBUTION_MANAGER";
 
     IL1GydEscrow public immutable l1GydEscrow;
     uint256 public maxRate;
@@ -40,7 +40,7 @@ contract GydDistributor is BaseDistributor, AccessControlDefaultAdminRules {
     ) BaseDistributor(gyd_) AccessControlDefaultAdminRules(0, admin) {
         maxRate = maxRate_;
         minimumDistributionInterval = minimumDistributionInterval_;
-        _grantRole(_DISTRIBUTION_MANAGER_ROLE, distributionManager);
+        _grantRole(DISTRIBUTION_MANAGER_ROLE, distributionManager);
         l1GydEscrow = l1GydEscrow_;
 
         emit MaxRateChanged(maxRate_);
@@ -65,6 +65,14 @@ contract GydDistributor is BaseDistributor, AccessControlDefaultAdminRules {
         emit MinimumDistributionIntervalChanged(minimumDistributionInterval_);
     }
 
+    function getL2DistributionFee(Distribution memory distribution) external view returns (uint256) {
+        if (distribution.destinationType != DestinationType.L2) revert InvalidDestinationType();
+
+        (uint256 chainSelector, Distribution memory data) = abi.decode(distribution.data, (uint256, Distribution));
+        bytes memory calldata_ = abi.encodeWithSelector(IGydDistributor.distributeGYD.selector, data);
+        return l1GydEscrow.getFee(uint64(chainSelector), distribution.recipient, distribution.amount, calldata_);
+    }
+
     /// @notice Mints GYD and distributes it to the recipient
     /// There are three types of destinations, which changes the way the distribution is done and the data should be encoded:
     /// ## SGyd
@@ -80,16 +88,8 @@ contract GydDistributor is BaseDistributor, AccessControlDefaultAdminRules {
     ///     The `distributeGYD` function of the L2 distributor contract will be called with the encoded Distribution data
     ///     when the GYD is bridged to the target chain
     /// @dev The function is payable to allow the contract to send the required amount of ETH to the L1GydEscrow
-    function distributeGYD(Distribution memory distribution) external payable onlyRole(_DISTRIBUTION_MANAGER_ROLE) {
+    function distributeGYD(Distribution memory distribution) external payable onlyRole(DISTRIBUTION_MANAGER_ROLE) {
         _distributeGYD(distribution);
-    }
-
-    function getL2DistributionFee(Distribution memory distribution) external view returns (uint256) {
-        if (distribution.destinationType != DestinationType.L2) revert InvalidDestinationType();
-
-        (uint256 chainSelector, Distribution memory data) = abi.decode(distribution.data, (uint256, Distribution));
-        bytes memory calldata_ = abi.encodeWithSelector(IGydDistributor.distributeGYD.selector, data);
-        return l1GydEscrow.getFee(uint64(chainSelector), distribution.recipient, distribution.amount, calldata_);
     }
 
     function _distributeGYD(Distribution memory distribution) internal {
@@ -126,6 +126,7 @@ contract GydDistributor is BaseDistributor, AccessControlDefaultAdminRules {
 
         uint256 balanceBefore = address(this).balance;
 
+        gyd.approve(address(l1GydEscrow), distribution.amount);
         l1GydEscrow.bridgeToken{value: msg.value}(
             uint64(chainSelector), distribution.recipient, distribution.amount, calldata_
         );
