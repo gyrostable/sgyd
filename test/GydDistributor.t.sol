@@ -25,7 +25,7 @@ contract GydDistributorTest is UnitTest {
         mockGauge = new MockGauge();
         mockL2Gauge = new MockGauge();
 
-        l2GydDistributor = new L2GydDistributor(l2Gyd);
+        l2GydDistributor = new L2GydDistributor(l2Gyd, owner);
         bytes memory initData =
             abi.encodeWithSelector(sGYD.initialize.selector, address(l2Gyd), owner, address(l2GydDistributor));
         l2Sgyd = sGYD(address(new ERC1967Proxy(address(new sGYD()), initData)));
@@ -59,6 +59,19 @@ contract GydDistributorTest is UnitTest {
         bytes4 err = IAccessControl.AccessControlUnauthorizedAccount.selector;
         vm.expectRevert(abi.encodeWithSelector(err, address(this), gydDistributor.DISTRIBUTION_MANAGER_ROLE()));
         gydDistributor.distributeGYD(
+            IGydDistributor.Distribution({
+                destinationType: IGydDistributor.DestinationType.SGyd,
+                recipient: address(sgyd),
+                amount: 1e18,
+                data: abi.encode(address(this), block.number)
+            })
+        );
+    }
+
+    function test_distributeGydL2_unauthorized() public {
+        bytes4 err = IAccessControl.AccessControlUnauthorizedAccount.selector;
+        vm.expectRevert(abi.encodeWithSelector(err, address(this), gydDistributor.DISTRIBUTION_MANAGER_ROLE()));
+        l2GydDistributor.distributeGYD(
             IGydDistributor.Distribution({
                 destinationType: IGydDistributor.DestinationType.SGyd,
                 recipient: address(sgyd),

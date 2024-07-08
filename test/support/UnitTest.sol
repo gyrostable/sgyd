@@ -4,6 +4,7 @@ pragma solidity ^0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {ERC1967Proxy} from "oz/proxy/ERC1967/ERC1967Proxy.sol";
 
+import {L2Gyd} from "./L2Gyd.sol";
 import {MintableERC20} from "./MintableERC20.sol";
 import {MockL1Escrow} from "./MockL1Escrow.sol";
 
@@ -16,7 +17,7 @@ contract UnitTest is Test {
     uint256 public maxRate = 0.1e18;
 
     MintableERC20 public gyd;
-    MintableERC20 public l2Gyd;
+    L2Gyd public l2Gyd;
     sGYD public sgyd;
     GydDistributor public gydDistributor;
     address public distributor;
@@ -27,7 +28,7 @@ contract UnitTest is Test {
         gyd = new MintableERC20("GYD", "GYD");
         gyd.mint(owner, 1000e18);
 
-        l2Gyd = new MintableERC20("GYD L2", "GYD L2");
+        l2Gyd = new L2Gyd("GYD L2", "GYD L2");
 
         l1Escrow = new MockL1Escrow(gyd, l2Gyd);
         gydDistributor = new GydDistributor(gyd, owner, distributionManager, maxRate, 1 days, l1Escrow);

@@ -4,7 +4,7 @@ pragma solidity ^0.8.24;
 import {Address} from "oz/utils/Address.sol";
 import {IERC20} from "oz/token/ERC20/IERC20.sol";
 
-import {MintableERC20} from "./MintableERC20.sol";
+import {L2Gyd} from "./L2Gyd.sol";
 
 import {IL1GydEscrow} from "../../src/interfaces/IL1GydEscrow.sol";
 
@@ -19,9 +19,9 @@ contract MockL1Escrow is IL1GydEscrow {
     }
 
     IERC20 public l1Gyd;
-    MintableERC20 public l2Gyd;
+    L2Gyd public l2Gyd;
 
-    constructor(IERC20 l1Gyd_, MintableERC20 l2Gyd_) {
+    constructor(IERC20 l1Gyd_, L2Gyd l2Gyd_) {
         l1Gyd = l1Gyd_;
         l2Gyd = l2Gyd_;
     }
@@ -36,8 +36,7 @@ contract MockL1Escrow is IL1GydEscrow {
         require(msg.value == _getFee(destinationChainSelector, recipient, amount, data), "Invalid fee");
         messages.push(Message(destinationChainSelector, recipient, amount, data));
         l1Gyd.transferFrom(msg.sender, address(this), amount);
-        l2Gyd.mint(recipient, amount);
-        recipient.functionCall(data);
+        l2Gyd.onReceive(recipient, amount, data);
     }
 
     function getFee(uint64 destinationChainSelector, address recipient, uint256 amount, bytes memory data)

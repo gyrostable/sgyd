@@ -12,7 +12,7 @@ import {ICurveLiquidityGauge} from "./interfaces/ICurveLiquidityGauge.sol";
 import {ScaledMath} from "./libraries/ScaledMath.sol";
 import {Stream} from "./libraries/Stream.sol";
 
-contract GydDistributor is BaseDistributor, AccessControlDefaultAdminRules {
+contract GydDistributor is BaseDistributor {
     using ScaledMath for uint256;
 
     error DistributionTooSoon(bytes32 key);
@@ -21,8 +21,6 @@ contract GydDistributor is BaseDistributor, AccessControlDefaultAdminRules {
     event GydDistributed(Distribution distribution);
     event MaxRateChanged(uint256 maxRate);
     event MinimumDistributionIntervalChanged(uint256 minimumDistributionInterval);
-
-    bytes32 public constant DISTRIBUTION_MANAGER_ROLE = "DISTRIBUTION_MANAGER";
 
     IL1GydEscrow public immutable l1GydEscrow;
     uint256 public maxRate;
@@ -37,7 +35,7 @@ contract GydDistributor is BaseDistributor, AccessControlDefaultAdminRules {
         uint256 maxRate_,
         uint256 minimumDistributionInterval_,
         IL1GydEscrow l1GydEscrow_
-    ) BaseDistributor(gyd_) AccessControlDefaultAdminRules(0, admin) {
+    ) BaseDistributor(gyd_, admin) {
         maxRate = maxRate_;
         minimumDistributionInterval = minimumDistributionInterval_;
         _grantRole(DISTRIBUTION_MANAGER_ROLE, distributionManager);
@@ -88,7 +86,7 @@ contract GydDistributor is BaseDistributor, AccessControlDefaultAdminRules {
     ///     The `distributeGYD` function of the L2 distributor contract will be called with the encoded Distribution data
     ///     when the GYD is bridged to the target chain
     /// @dev The function is payable to allow the contract to send the required amount of ETH to the L1GydEscrow
-    function distributeGYD(Distribution memory distribution) external payable onlyRole(DISTRIBUTION_MANAGER_ROLE) {
+    function distributeGYD(Distribution memory distribution) external payable onlyDistributionManager {
         _distributeGYD(distribution);
     }
 
