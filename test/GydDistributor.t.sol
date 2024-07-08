@@ -162,19 +162,8 @@ contract GydDistributorTest is UnitTest {
     }
 
     function test_distributeGyd_l2Gauge() public {
-        vm.prank(distributionManager);
-        IGydDistributor.Distribution memory l2Distribution = IGydDistributor.Distribution({
-            destinationType: IGydDistributor.DestinationType.Gauge,
-            recipient: address(mockL2Gauge),
-            amount: 1e18,
-            data: ""
-        });
-        IGydDistributor.Distribution memory distribution = IGydDistributor.Distribution({
-            destinationType: IGydDistributor.DestinationType.L2,
-            recipient: address(l2GydDistributor),
-            amount: 1e18,
-            data: abi.encode(42, l2Distribution)
-        });
+        (IGydDistributor.Distribution memory distribution, IGydDistributor.Distribution memory l2Distribution) =
+            _getL2GaugeDistribution();
         uint256 fee = gydDistributor.getL2DistributionFee(distribution);
         deal(distributionManager, fee);
         vm.prank(distributionManager);
@@ -189,6 +178,28 @@ contract GydDistributorTest is UnitTest {
 
         assertEq(gyd.balanceOf(address(l1Escrow)), 1e18);
         assertEq(l2Gyd.balanceOf(address(mockL2Gauge)), 1e18);
+    }
+
+    function test_distributeGyd_extraFee() public {
+        (IGydDistributor.Distribution memory distribution,) = _getL2GaugeDistribution();
+
+        uint256 fee = gydDistributor.getL2DistributionFee(distribution);
+        uint256 msgValue = fee + 10e18;
+        deal(distributionManager, msgValue);
+        vm.prank(distributionManager);
+        gydDistributor.distributeGYD{value: msgValue}(distribution);
+        assertEq(distributionManager.balance, 10e18);
+    }
+
+    function test_distributeGyd_feesNotCovered() public {
+        (IGydDistributor.Distribution memory distribution,) = _getL2GaugeDistribution();
+
+        uint256 fee = gydDistributor.getL2DistributionFee(distribution);
+        uint256 msgValue = fee - 5;
+        deal(distributionManager, msgValue);
+        vm.prank(distributionManager);
+        vm.expectRevert(abi.encodeWithSelector(GydDistributor.FeeNotCovered.selector, fee, msgValue));
+        gydDistributor.distributeGYD{value: msgValue}(distribution);
     }
 
     function test_distributeGyd_l2Sgyd() public {
@@ -222,5 +233,24 @@ contract GydDistributorTest is UnitTest {
         assertEq(l2Sgyd.totalAssets(), 0);
         skip(1 days);
         assertEq(l2Sgyd.totalAssets(), 1e18);
+    }
+
+    function _getL2GaugeDistribution()
+        internal
+        view
+        returns (IGydDistributor.Distribution memory l1Distribution, IGydDistributor.Distribution memory l2Distribution)
+    {
+        l2Distribution = IGydDistributor.Distribution({
+            destinationType: IGydDistributor.DestinationType.Gauge,
+            recipient: address(mockL2Gauge),
+            amount: 1e18,
+            data: ""
+        });
+        l1Distribution = IGydDistributor.Distribution({
+            destinationType: IGydDistributor.DestinationType.L2,
+            recipient: address(l2GydDistributor),
+            amount: 1e18,
+            data: abi.encode(42, l2Distribution)
+        });
     }
 }

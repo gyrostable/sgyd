@@ -15,6 +15,7 @@ import {Stream} from "./libraries/Stream.sol";
 contract GydDistributor is BaseDistributor {
     using ScaledMath for uint256;
 
+    error FeeNotCovered(uint256 fee, uint256 value);
     error DistributionTooSoon(bytes32 key);
     error MaxRateExceeded();
 
@@ -63,7 +64,7 @@ contract GydDistributor is BaseDistributor {
         emit MinimumDistributionIntervalChanged(minimumDistributionInterval_);
     }
 
-    function getL2DistributionFee(Distribution memory distribution) external view returns (uint256) {
+    function getL2DistributionFee(Distribution memory distribution) public view returns (uint256) {
         if (distribution.destinationType != DestinationType.L2) revert InvalidDestinationType();
 
         (uint256 chainSelector, Distribution memory data) = abi.decode(distribution.data, (uint256, Distribution));
@@ -124,8 +125,13 @@ contract GydDistributor is BaseDistributor {
 
         uint256 balanceBefore = address(this).balance;
 
+        uint256 fee = getL2DistributionFee(distribution);
+        if (msg.value < fee) {
+            revert FeeNotCovered(fee, msg.value);
+        }
+
         gyd.approve(address(l1GydEscrow), distribution.amount);
-        l1GydEscrow.bridgeToken{value: msg.value}(
+        l1GydEscrow.bridgeToken{value: fee}(
             uint64(chainSelector), distribution.recipient, distribution.amount, calldata_
         );
 
