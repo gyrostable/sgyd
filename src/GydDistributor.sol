@@ -18,10 +18,13 @@ contract GydDistributor is BaseDistributor {
     error FeeNotCovered(uint256 fee, uint256 value);
     error DistributionTooSoon(bytes32 key);
     error MaxRateExceeded();
+    error MismatchingAmounts(uint256 l1Amount, uint256 l2Amount);
 
     event GydDistributed(Distribution distribution);
     event MaxRateChanged(uint256 maxRate);
-    event MinimumDistributionIntervalChanged(uint256 minimumDistributionInterval);
+    event MinimumDistributionIntervalChanged(
+        uint256 minimumDistributionInterval
+    );
 
     IL1GydEscrow public immutable l1GydEscrow;
     uint256 public maxRate;
@@ -49,27 +52,43 @@ contract GydDistributor is BaseDistributor {
     /// this is a percentage of the total supply of GYD
     /// The rate is designed as a very basic protection against a bug in the distribution logic
     /// but is not designed to be a security feature in the case where `distributeGYD` would be called by a malicious party
-    function setMaxRate(uint256 maxRate_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setMaxRate(
+        uint256 maxRate_
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         maxRate = maxRate_;
 
         emit MaxRateChanged(maxRate_);
     }
 
     /// @notice Sets the minimum time between distributions to the same recipient
-    function setMinimumDistributionInterval(uint256 minimumDistributionInterval_)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function setMinimumDistributionInterval(
+        uint256 minimumDistributionInterval_
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         minimumDistributionInterval = minimumDistributionInterval_;
         emit MinimumDistributionIntervalChanged(minimumDistributionInterval_);
     }
 
-    function getL2DistributionFee(Distribution memory distribution) public view returns (uint256) {
-        if (distribution.destinationType != DestinationType.L2) revert InvalidDestinationType();
+    function getL2DistributionFee(
+        Distribution memory distribution
+    ) public view returns (uint256) {
+        if (distribution.destinationType != DestinationType.L2)
+            revert InvalidDestinationType();
 
-        (uint256 chainSelector, Distribution memory data) = abi.decode(distribution.data, (uint256, Distribution));
-        bytes memory calldata_ = abi.encodeWithSelector(IGydDistributor.distributeGYD.selector, data);
-        return l1GydEscrow.getFee(uint64(chainSelector), distribution.recipient, distribution.amount, calldata_);
+        (uint256 chainSelector, Distribution memory data) = abi.decode(
+            distribution.data,
+            (uint256, Distribution)
+        );
+        bytes memory calldata_ = abi.encodeWithSelector(
+            IGydDistributor.distributeGYD.selector,
+            data
+        );
+        return
+            l1GydEscrow.getFee(
+                uint64(chainSelector),
+                distribution.recipient,
+                distribution.amount,
+                calldata_
+            );
     }
 
     /// @notice Mints GYD and distributes it to the recipient
@@ -87,7 +106,9 @@ contract GydDistributor is BaseDistributor {
     ///     The `distributeGYD` function of the L2 distributor contract will be called with the encoded Distribution data
     ///     when the GYD is bridged to the target chain
     /// @dev The function is payable to allow the contract to send the required amount of ETH to the L1GydEscrow
-    function distributeGYD(Distribution memory distribution) external payable onlyDistributionManager {
+    function distributeGYD(
+        Distribution memory distribution
+    ) external payable onlyDistributionManager {
         _distributeGYD(distribution);
     }
 
@@ -120,8 +141,17 @@ contract GydDistributor is BaseDistributor {
     }
 
     function _distributeToL2(Distribution memory distribution) internal {
-        (uint256 chainSelector, Distribution memory data) = abi.decode(distribution.data, (uint256, Distribution));
-        bytes memory calldata_ = abi.encodeWithSelector(IGydDistributor.distributeGYD.selector, data);
+        (uint256 chainSelector, Distribution memory data) = abi.decode(
+            distribution.data,
+            (uint256, Distribution)
+        );
+        bytes memory calldata_ = abi.encodeWithSelector(
+            IGydDistributor.distributeGYD.selector,
+            data
+        );
+        if (distribution.amount != data.amount) {
+            revert MismatchingAmounts(distribution.amount, data.amount);
+        }
 
         uint256 balanceBefore = address(this).balance;
 
@@ -132,7 +162,10 @@ contract GydDistributor is BaseDistributor {
 
         gyd.approve(address(l1GydEscrow), distribution.amount);
         l1GydEscrow.bridgeToken{value: fee}(
-            uint64(chainSelector), distribution.recipient, distribution.amount, calldata_
+            uint64(chainSelector),
+            distribution.recipient,
+            distribution.amount,
+            calldata_
         );
 
         uint256 usedBalance = balanceBefore - address(this).balance;
@@ -141,11 +174,29 @@ contract GydDistributor is BaseDistributor {
         }
     }
 
-    function _distributionKey(Distribution memory distribution) internal pure returns (bytes32) {
+    function _distributionKey(
+        Distribution memory distribution
+    ) internal pure returns (bytes32) {
         if (distribution.destinationType == DestinationType.L2) {
-            (uint256 chainSelector, Distribution memory data) = abi.decode(distribution.data, (uint256, Distribution));
-            return keccak256(abi.encodePacked(chainSelector, data.destinationType, data.recipient));
+            (uint256 chainSelector, Distribution memory data) = abi.decode(
+                distribution.data,
+                (uint256, Distribution)
+            );
+            return
+                keccak256(
+                    abi.encodePacked(
+                        chainSelector,
+                        data.destinationType,
+                        data.recipient
+                    )
+                );
         }
-        return keccak256(abi.encodePacked(distribution.destinationType, distribution.recipient));
+        return
+            keccak256(
+                abi.encodePacked(
+                    distribution.destinationType,
+                    distribution.recipient
+                )
+            );
     }
 }

@@ -180,7 +180,7 @@ contract GydDistributorTest is UnitTest {
         assertEq(l2Gyd.balanceOf(address(mockL2Gauge)), 1e18);
     }
 
-    function test_distributeGyd_extraFee() public {
+    function test_distributeGydL2_extraFee() public {
         (IGydDistributor.Distribution memory distribution,) = _getL2GaugeDistribution();
 
         uint256 fee = gydDistributor.getL2DistributionFee(distribution);
@@ -191,7 +191,7 @@ contract GydDistributorTest is UnitTest {
         assertEq(distributionManager.balance, 10e18);
     }
 
-    function test_distributeGyd_feesNotCovered() public {
+    function test_distributeGydL2_feesNotCovered() public {
         (IGydDistributor.Distribution memory distribution,) = _getL2GaugeDistribution();
 
         uint256 fee = gydDistributor.getL2DistributionFee(distribution);
@@ -200,6 +200,22 @@ contract GydDistributorTest is UnitTest {
         vm.prank(distributionManager);
         vm.expectRevert(abi.encodeWithSelector(GydDistributor.FeeNotCovered.selector, fee, msgValue));
         gydDistributor.distributeGYD{value: msgValue}(distribution);
+    }
+
+    function test_distributeGydL2_invalidAmounts() public {
+        (IGydDistributor.Distribution memory distribution, IGydDistributor.Distribution memory l2Distribution) =
+            _getL2GaugeDistribution();
+        distribution.amount += 100;
+
+        uint256 fee = gydDistributor.getL2DistributionFee(distribution);
+        deal(distributionManager, fee);
+        vm.prank(distributionManager);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                GydDistributor.MismatchingAmounts.selector, distribution.amount, l2Distribution.amount
+            )
+        );
+        gydDistributor.distributeGYD{value: fee}(distribution);
     }
 
     function test_distributeGyd_l2Sgyd() public {
