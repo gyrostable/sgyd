@@ -123,6 +123,8 @@ contract GydDistributor is BaseDistributor {
         uint256 maxAmount = gydSupply.mul(maxRate);
         if (distribution.amount > maxAmount) revert MaxRateExceeded();
 
+        lastDistributionTime[distributionKey] = block.timestamp;
+
         gyd.mint(address(this), distribution.amount);
 
         if (distribution.destinationType == DestinationType.SGyd) {
@@ -134,8 +136,6 @@ contract GydDistributor is BaseDistributor {
         } else {
             revert InvalidDestinationType();
         }
-
-        lastDistributionTime[distributionKey] = block.timestamp;
 
         emit GydDistributed(distribution);
     }
