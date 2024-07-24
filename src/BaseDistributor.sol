@@ -9,7 +9,10 @@ import {IGydDistributor} from "./interfaces/IGydDistributor.sol";
 import {ICurveLiquidityGauge} from "./interfaces/ICurveLiquidityGauge.sol";
 import {Stream} from "./libraries/Stream.sol";
 
-abstract contract BaseDistributor is IGydDistributor, AccessControlDefaultAdminRules {
+abstract contract BaseDistributor is
+    IGydDistributor,
+    AccessControlDefaultAdminRules
+{
     error InvalidDestinationType();
     error NonZeroValue();
 
@@ -22,24 +25,33 @@ abstract contract BaseDistributor is IGydDistributor, AccessControlDefaultAdminR
         _;
     }
 
-    constructor(IGYD gyd_, address admin) AccessControlDefaultAdminRules(0, admin) {
+    constructor(
+        IGYD gyd_,
+        address admin
+    ) AccessControlDefaultAdminRules(0, admin) {
         gyd = gyd_;
     }
 
     function _distributeTosGYD(Distribution memory distribution) internal {
-        if (msg.value > 0) revert NonZeroValue();
-
-        (uint256 start, uint256 end) = abi.decode(distribution.data, (uint256, uint256));
+        (uint256 start, uint256 end) = abi.decode(
+            distribution.data,
+            (uint256, uint256)
+        );
         gyd.approve(distribution.recipient, distribution.amount);
         IsGYD(distribution.recipient).addStream(
-            Stream.T({amount: uint128(distribution.amount), start: uint64(start), end: uint64(end)})
+            Stream.T({
+                amount: uint128(distribution.amount),
+                start: uint64(start),
+                end: uint64(end)
+            })
         );
     }
 
     function _distributeToGauge(Distribution memory distribution) internal {
-        if (msg.value > 0) revert NonZeroValue();
-
         gyd.approve(distribution.recipient, distribution.amount);
-        ICurveLiquidityGauge(distribution.recipient).deposit_reward_token(address(gyd), distribution.amount);
+        ICurveLiquidityGauge(distribution.recipient).deposit_reward_token(
+            address(gyd),
+            distribution.amount
+        );
     }
 }

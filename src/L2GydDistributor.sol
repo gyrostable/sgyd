@@ -11,7 +11,11 @@ contract L2GydDistributor is BaseDistributor {
         _grantRole(DISTRIBUTION_MANAGER_ROLE, address(gyd_));
     }
 
-    function distributeGYD(Distribution memory distribution) external payable onlyDistributionManager {
+    function distributeGYD(
+        Distribution memory distribution
+    ) external payable onlyDistributionManager {
+        if (msg.value > 0) revert NonZeroValue();
+
         if (distribution.destinationType == DestinationType.SGyd) {
             _distributeTosGYD(distribution);
         } else if (distribution.destinationType == DestinationType.Gauge) {

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.24;
 
 import {AccessControlDefaultAdminRules} from "oz/access/extensions/AccessControlDefaultAdminRules.sol";
+import {Address} from "oz/utils/Address.sol";
 
 import {BaseDistributor} from "./BaseDistributor.sol";
 import {IGydDistributor} from "./interfaces/IGydDistributor.sol";
@@ -13,6 +14,7 @@ import {ScaledMath} from "./libraries/ScaledMath.sol";
 import {Stream} from "./libraries/Stream.sol";
 
 contract GydDistributor is BaseDistributor {
+    using Address for address payable;
     using ScaledMath for uint256;
 
     error FeeNotCovered(uint256 fee, uint256 value);
@@ -68,6 +70,15 @@ contract GydDistributor is BaseDistributor {
         emit MinimumDistributionIntervalChanged(minimumDistributionInterval_);
     }
 
+    function getBatchDistributionFee(
+        Distribution[] memory distributions
+    ) external view returns (uint256 totalFee) {
+        for (uint256 i; i < distributions.length; i++) {
+            if (distributions[i].destinationType == DestinationType.L2)
+                totalFee += getL2DistributionFee(distributions[i]);
+        }
+    }
+
     function getL2DistributionFee(
         Distribution memory distribution
     ) public view returns (uint256) {
@@ -109,7 +120,20 @@ contract GydDistributor is BaseDistributor {
     function distributeGYD(
         Distribution memory distribution
     ) external payable onlyDistributionManager {
+        uint256 balanceBefore = address(this).balance;
         _distributeGYD(distribution);
+        _reimburseUnusedBalance(balanceBefore);
+    }
+
+    /// @notice same as distributeGYD but can create multiple distributions in a single transaction
+    function batchDistributeGYD(
+        Distribution[] memory distributions
+    ) external payable onlyDistributionManager {
+        uint256 balanceBefore = address(this).balance;
+        for (uint256 i; i < distributions.length; i++) {
+            _distributeGYD(distributions[i]);
+        }
+        _reimburseUnusedBalance(balanceBefore);
     }
 
     function _distributeGYD(Distribution memory distribution) internal {
@@ -153,8 +177,6 @@ contract GydDistributor is BaseDistributor {
             revert MismatchingAmounts(distribution.amount, data.amount);
         }
 
-        uint256 balanceBefore = address(this).balance;
-
         uint256 fee = getL2DistributionFee(distribution);
         if (msg.value < fee) {
             revert FeeNotCovered(fee, msg.value);
@@ -167,10 +189,12 @@ contract GydDistributor is BaseDistributor {
             distribution.amount,
             calldata_
         );
+    }
 
-        uint256 usedBalance = balanceBefore - address(this).balance;
+    function _reimburseUnusedBalance(uint256 previousBalance) internal {
+        uint256 usedBalance = previousBalance - address(this).balance;
         if (usedBalance < msg.value) {
-            payable(msg.sender).transfer(msg.value - usedBalance);
+            payable(msg.sender).sendValue(msg.value - usedBalance);
         }
     }
 
