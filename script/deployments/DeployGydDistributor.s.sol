@@ -14,6 +14,6 @@ contract DeployGydDistributor is Deployment {
             type(GydDistributor).creationCode,
             abi.encode(token, deployer, deployer, 0.5e18, 1 days, escrow)
         );
-        _deploy("DummyGydDistributor", creationCode);
+        _deploy("DummyGydDistributorV2", creationCode);
     }
 }
