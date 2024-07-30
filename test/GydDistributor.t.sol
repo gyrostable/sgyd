@@ -11,26 +11,9 @@ import {MockL1Escrow} from "./support/MockL1Escrow.sol";
 
 import {sGYD} from "../src/sGYD.sol";
 import {GydDistributor} from "../src/GydDistributor.sol";
-import {L2GydDistributor} from "../src/L2GydDistributor.sol";
 import {IGydDistributor} from "../src/interfaces/IGydDistributor.sol";
 
 contract GydDistributorTest is UnitTest {
-    L2GydDistributor public l2GydDistributor;
-    MockGauge public mockGauge;
-    MockGauge public mockL2Gauge;
-    sGYD public l2Sgyd;
-
-    function setUp() public override {
-        super.setUp();
-        mockGauge = new MockGauge();
-        mockL2Gauge = new MockGauge();
-
-        l2GydDistributor = new L2GydDistributor(l2Gyd, owner);
-        bytes memory initData =
-            abi.encodeWithSelector(sGYD.initialize.selector, address(l2Gyd), owner, address(l2GydDistributor));
-        l2Sgyd = sGYD(address(new ERC1967Proxy(address(new sGYD()), initData)));
-    }
-
     function test_setMaxRate_unauthorized() public {
         bytes4 err = IAccessControl.AccessControlUnauthorizedAccount.selector;
         vm.expectRevert(abi.encodeWithSelector(err, address(this), gydDistributor.DEFAULT_ADMIN_ROLE()));
@@ -58,14 +41,7 @@ contract GydDistributorTest is UnitTest {
     function test_distributeGyd_unauthorized() public {
         bytes4 err = IAccessControl.AccessControlUnauthorizedAccount.selector;
         vm.expectRevert(abi.encodeWithSelector(err, address(this), gydDistributor.DISTRIBUTION_MANAGER_ROLE()));
-        gydDistributor.distributeGYD(
-            IGydDistributor.Distribution({
-                destinationType: IGydDistributor.DestinationType.SGyd,
-                recipient: address(sgyd),
-                amount: 1e18,
-                data: abi.encode(address(this), block.number)
-            })
-        );
+        gydDistributor.distributeGYD(_getSgydDistribution(1e18));
     }
 
     function test_distributeGydL2_unauthorized() public {
@@ -82,14 +58,9 @@ contract GydDistributorTest is UnitTest {
     }
 
     function test_distributeGyd_tooSoon() public {
-        IGydDistributor.Distribution memory distribution = IGydDistributor.Distribution({
-            destinationType: IGydDistributor.DestinationType.SGyd,
-            recipient: address(sgyd),
-            amount: 1e18,
-            data: abi.encode(block.timestamp, block.timestamp + 1 days)
-        });
+        IGydDistributor.Distribution memory distribution = _getSgydDistribution(1e18);
         _whitelistKey(distribution);
-        vm.startPrank(distributionManager);
+        vm.startPrank(eoaDistributor);
         gydDistributor.distributeGYD(distribution);
         bytes32 key = gydDistributor.getDistributionKey(distribution);
         skip(1 hours);
@@ -98,20 +69,15 @@ contract GydDistributorTest is UnitTest {
     }
 
     function test_distributeGyd_overRate() public {
-        IGydDistributor.Distribution memory distribution = IGydDistributor.Distribution({
-            destinationType: IGydDistributor.DestinationType.SGyd,
-            recipient: address(sgyd),
-            amount: 500e18,
-            data: abi.encode(block.timestamp, block.timestamp + 1 days)
-        });
+        IGydDistributor.Distribution memory distribution = _getSgydDistribution(500e18);
         _whitelistKey(distribution);
-        vm.prank(distributionManager);
+        vm.prank(eoaDistributor);
         vm.expectRevert(GydDistributor.MaxRateExceeded.selector);
         gydDistributor.distributeGYD(distribution);
     }
 
     function test_distributeGyd_toSgydWrongArguments() public {
-        vm.prank(distributionManager);
+        vm.prank(eoaDistributor);
         vm.expectRevert();
         gydDistributor.distributeGYD(
             IGydDistributor.Distribution({
@@ -124,27 +90,17 @@ contract GydDistributorTest is UnitTest {
     }
 
     function test_distributeGyd_toNonWhitelisted() public {
-        IGydDistributor.Distribution memory distribution = IGydDistributor.Distribution({
-            destinationType: IGydDistributor.DestinationType.SGyd,
-            recipient: address(sgyd),
-            amount: 1e18,
-            data: abi.encode(block.timestamp, block.timestamp + 1 days)
-        });
+        IGydDistributor.Distribution memory distribution = _getSgydDistribution(1e18);
         bytes32 key = gydDistributor.getDistributionKey(distribution);
-        vm.prank(distributionManager);
+        vm.prank(eoaDistributor);
         vm.expectRevert(abi.encodeWithSelector(GydDistributor.NotWhitelistedKey.selector, key));
         gydDistributor.distributeGYD(distribution);
     }
 
     function test_distributeGyd_toSgyd() public {
-        IGydDistributor.Distribution memory distribution = IGydDistributor.Distribution({
-            destinationType: IGydDistributor.DestinationType.SGyd,
-            recipient: address(sgyd),
-            amount: 1e18,
-            data: abi.encode(block.timestamp, block.timestamp + 1 days)
-        });
+        IGydDistributor.Distribution memory distribution = _getSgydDistribution(1e18);
         _whitelistKey(distribution);
-        vm.prank(distributionManager);
+        vm.prank(eoaDistributor);
         gydDistributor.distributeGYD(distribution);
         assertEq(gyd.balanceOf(address(sgyd)), 1e18);
         assertEq(sgyd.totalAssets(), 0);
@@ -163,7 +119,7 @@ contract GydDistributorTest is UnitTest {
         });
         _whitelistKey(distribution);
 
-        vm.prank(distributionManager);
+        vm.prank(eoaDistributor);
         gydDistributor.distributeGYD(distribution);
 
         assertEq(gyd.balanceOf(address(mockGauge)), 5e18);
@@ -174,8 +130,8 @@ contract GydDistributorTest is UnitTest {
             _getL2GaugeDistribution();
         _whitelistKey(distribution);
         uint256 fee = gydDistributor.getL2DistributionFee(distribution);
-        deal(distributionManager, fee);
-        vm.prank(distributionManager);
+        deal(eoaDistributor, fee);
+        vm.prank(eoaDistributor);
         gydDistributor.distributeGYD{value: fee}(distribution);
 
         (uint64 destinationChainSelector, address recipient, uint256 amount, bytes memory calldata_) =
@@ -195,10 +151,10 @@ contract GydDistributorTest is UnitTest {
 
         uint256 fee = gydDistributor.getL2DistributionFee(distribution);
         uint256 msgValue = fee + 10e18;
-        deal(distributionManager, msgValue);
-        vm.prank(distributionManager);
+        deal(eoaDistributor, msgValue);
+        vm.prank(eoaDistributor);
         gydDistributor.distributeGYD{value: msgValue}(distribution);
-        assertEq(distributionManager.balance, 10e18);
+        assertEq(eoaDistributor.balance, 10e18);
     }
 
     function test_distributeGydL2_feesNotCovered() public {
@@ -207,8 +163,8 @@ contract GydDistributorTest is UnitTest {
 
         uint256 fee = gydDistributor.getL2DistributionFee(distribution);
         uint256 msgValue = fee - 5;
-        deal(distributionManager, msgValue);
-        vm.prank(distributionManager);
+        deal(eoaDistributor, msgValue);
+        vm.prank(eoaDistributor);
         vm.expectRevert(abi.encodeWithSelector(GydDistributor.FeeNotCovered.selector, fee, msgValue));
         gydDistributor.distributeGYD{value: msgValue}(distribution);
     }
@@ -220,8 +176,8 @@ contract GydDistributorTest is UnitTest {
         _whitelistKey(distribution);
 
         uint256 fee = gydDistributor.getL2DistributionFee(distribution);
-        deal(distributionManager, fee);
-        vm.prank(distributionManager);
+        deal(eoaDistributor, fee);
+        vm.prank(eoaDistributor);
         vm.expectRevert(
             abi.encodeWithSelector(
                 GydDistributor.MismatchingAmounts.selector, distribution.amount, l2Distribution.amount
@@ -231,7 +187,7 @@ contract GydDistributorTest is UnitTest {
     }
 
     function test_distributeGyd_l2Sgyd() public {
-        vm.prank(distributionManager);
+        vm.prank(eoaDistributor);
         IGydDistributor.Distribution memory l2Distribution = IGydDistributor.Distribution({
             destinationType: IGydDistributor.DestinationType.SGyd,
             recipient: address(l2Sgyd),
@@ -246,8 +202,8 @@ contract GydDistributorTest is UnitTest {
         });
         _whitelistKey(distribution);
         uint256 fee = gydDistributor.getL2DistributionFee(distribution);
-        deal(distributionManager, fee);
-        vm.prank(distributionManager);
+        deal(eoaDistributor, fee);
+        vm.prank(eoaDistributor);
         gydDistributor.distributeGYD{value: fee}(distribution);
 
         (uint64 destinationChainSelector, address recipient, uint256 amount, bytes memory calldata_) =
@@ -266,12 +222,7 @@ contract GydDistributorTest is UnitTest {
 
     function test_batchDistributeGyd_multipleL1s() public {
         IGydDistributor.Distribution[] memory distributions = new IGydDistributor.Distribution[](2);
-        distributions[0] = IGydDistributor.Distribution({
-            destinationType: IGydDistributor.DestinationType.SGyd,
-            recipient: address(sgyd),
-            amount: 1e18,
-            data: abi.encode(block.timestamp, block.timestamp + 1 days)
-        });
+        distributions[0] = _getSgydDistribution(1e18);
         distributions[1] = IGydDistributor.Distribution({
             destinationType: IGydDistributor.DestinationType.Gauge,
             recipient: address(mockGauge),
@@ -281,7 +232,7 @@ contract GydDistributorTest is UnitTest {
         for (uint256 i = 0; i < distributions.length; i++) {
             _whitelistKey(distributions[i]);
         }
-        vm.prank(distributionManager);
+        vm.prank(eoaDistributor);
         gydDistributor.batchDistributeGYD(distributions);
 
         assertEq(gyd.balanceOf(address(sgyd)), 1e18);
@@ -295,7 +246,7 @@ contract GydDistributorTest is UnitTest {
     }
 
     function test_batchDistributeGyd_L1sL2s() public {
-        vm.prank(distributionManager);
+        vm.prank(eoaDistributor);
         IGydDistributor.Distribution memory l2Distribution = IGydDistributor.Distribution({
             destinationType: IGydDistributor.DestinationType.SGyd,
             recipient: address(l2Sgyd),
@@ -310,12 +261,7 @@ contract GydDistributorTest is UnitTest {
         });
 
         IGydDistributor.Distribution[] memory distributions = new IGydDistributor.Distribution[](3);
-        distributions[0] = IGydDistributor.Distribution({
-            destinationType: IGydDistributor.DestinationType.SGyd,
-            recipient: address(sgyd),
-            amount: 1e18,
-            data: abi.encode(block.timestamp, block.timestamp + 1 days)
-        });
+        distributions[0] = _getSgydDistribution(1e18);
         distributions[1] = l2SgydDistribution;
         (distributions[2],) = _getL2GaugeDistribution();
         for (uint256 i = 0; i < distributions.length; i++) {
@@ -323,37 +269,12 @@ contract GydDistributorTest is UnitTest {
         }
 
         uint256 fee = gydDistributor.getBatchDistributionFee(distributions);
-        deal(distributionManager, fee);
-        vm.prank(distributionManager);
+        deal(eoaDistributor, fee);
+        vm.prank(eoaDistributor);
         gydDistributor.batchDistributeGYD{value: fee}(distributions);
 
         assertEq(gyd.balanceOf(address(sgyd)), 1e18);
         assertEq(l2Gyd.balanceOf(address(l2Sgyd)), 1e18);
         assertEq(l2Gyd.balanceOf(address(mockL2Gauge)), 1e18);
-    }
-
-    function _getL2GaugeDistribution()
-        internal
-        view
-        returns (IGydDistributor.Distribution memory l1Distribution, IGydDistributor.Distribution memory l2Distribution)
-    {
-        l2Distribution = IGydDistributor.Distribution({
-            destinationType: IGydDistributor.DestinationType.Gauge,
-            recipient: address(mockL2Gauge),
-            amount: 1e18,
-            data: ""
-        });
-        l1Distribution = IGydDistributor.Distribution({
-            destinationType: IGydDistributor.DestinationType.L2,
-            recipient: address(l2GydDistributor),
-            amount: 1e18,
-            data: abi.encode(42, l2Distribution)
-        });
-    }
-
-    function _whitelistKey(IGydDistributor.Distribution memory distribution) internal {
-        bytes32 key = gydDistributor.getDistributionKey(distribution);
-        vm.prank(owner);
-        gydDistributor.addWhitelistedDistributionKey(key);
     }
 }
