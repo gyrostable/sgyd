@@ -10,12 +10,9 @@ contract DeployL2GydDistributor is Deployment {
     function run() public {
         vm.startBroadcast(deployerPrivateKey);
 
-        address token = _getDeployed("DummyL2Gyd");
-        console.log(token);
-        bytes memory creationCode = abi.encodePacked(
-            type(L2GydDistributor).creationCode,
-            abi.encode(token, deployer)
-        );
-        _deploy("DummyL2GydDistributor", creationCode);
+        bytes memory args = abi.encode(l2Gyd, deployer);
+        bytes memory creationCode = abi.encodePacked(type(L2GydDistributor).creationCode, args);
+        address l2GydDistributor = _deploy(L2_GYD_DISTRIBUTOR, creationCode);
+        console.log("L2GydDistributor: ", l2GydDistributor);
     }
 }

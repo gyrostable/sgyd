@@ -1,19 +1,23 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 pragma solidity ^0.8.24;
 
+import {console} from "forge-std/console.sol";
+
 import {GydDistributor} from "../../src/GydDistributor.sol";
 import {Deployment} from "./Deployment.sol";
 
 contract DeployGydDistributor is Deployment {
+    uint256 public constant maxRate = 0.01e18;
+    uint256 public constant minimumDistributionInterval = 1 days;
+
     function run() public {
         vm.startBroadcast(deployerPrivateKey);
 
-        address token = _getDeployed("DummyGydTestToken");
-        address escrow = _getDeployed("DummyGydL1CCIPEscrow");
-        bytes memory creationCode = abi.encodePacked(
-            type(GydDistributor).creationCode,
-            abi.encode(token, deployer, deployer, 0.5e18, 1 days, escrow)
-        );
-        _deploy("DummyGydDistributorV2", creationCode);
+        address distributionManager = _getDeployed(DISTRIBUTION_MANAGER);
+        bytes memory args =
+            abi.encode(gyd, governance, distributionManager, maxRate, minimumDistributionInterval, l1EscrowAddress);
+        bytes memory creationCode = abi.encodePacked(type(GydDistributor).creationCode, args);
+        address gydDistributor = _deploy(GYD_DISTRIBUTOR, creationCode);
+        console.log("GydDistributor:", gydDistributor);
     }
 }
