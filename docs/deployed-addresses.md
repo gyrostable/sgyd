@@ -11,3 +11,10 @@
 * `GydDistributor`: [0x7cC9eb3cbe2472e9CCa5398DC9A48710682359C2](https://etherscan.io/address/0x7cC9eb3cbe2472e9CCa5398DC9A48710682359C2)
 
 * `sGYD`: [0xeA50f402653c41cAdbaFD1f788341dB7B7F37816](https://etherscan.io/address/0xeA50f402653c41cAdbaFD1f788341dB7B7F37816)
+
+## Arbitrum
+
+
+* `L2GydDistributor`: [0x401937B787277CB0680835303f013cf4d3D1cB14](https://arbiscan.io/address/0x401937B787277CB0680835303f013cf4d3D1cB14)
+
+* `sGYD`: [0xeA50f402653c41cAdbaFD1f788341dB7B7F37816](https://arbiscan.io/address/0xeA50f402653c41cAdbaFD1f788341dB7B7F37816)
