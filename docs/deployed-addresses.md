@@ -6,15 +6,15 @@
 
 * `DistributionExecutor` (Gnosis safe): [0xaA2379d779763EE69FD4595272A1c6C31F8E20B4](https://etherscan.io/address/0xaA2379d779763EE69FD4595272A1c6C31F8E20B4)
 
-* `DistributionManager`: [0x588915383E2f4374a2b5cD56f233d70f07516f87](https://etherscan.io/address/0x588915383E2f4374a2b5cD56f233d70f07516f87)
+* `DistributionManager`: [0x4d9c765d7431ff354d208cf9a37e7186180e6586](https://etherscan.io/address/0x4d9c765d7431ff354d208cf9a37e7186180e6586)
 
-* `GydDistributor`: [0x7cC9eb3cbe2472e9CCa5398DC9A48710682359C2](https://etherscan.io/address/0x7cC9eb3cbe2472e9CCa5398DC9A48710682359C2)
+* `GydDistributor`: [`0xc1024e475E357375E16c7F86fE46cbc6fFB0561D`](https://etherscan.io/address/0xc1024e475e357375e16c7f86fe46cbc6ffb0561d)
 
 * `sGYD`: [0xeA50f402653c41cAdbaFD1f788341dB7B7F37816](https://etherscan.io/address/0xeA50f402653c41cAdbaFD1f788341dB7B7F37816)
 
 ## Arbitrum
 
 
-* `L2GydDistributor`: [0x401937B787277CB0680835303f013cf4d3D1cB14](https://arbiscan.io/address/0x401937B787277CB0680835303f013cf4d3D1cB14)
+* `L2GydDistributor`: [0x4Dfdad359bd4c154dD307350582C4bff636Ba299](https://arbiscan.io/address/0x4Dfdad359bd4c154dD307350582C4bff636Ba299)
 
 * `sGYD`: [0xeA50f402653c41cAdbaFD1f788341dB7B7F37816](https://arbiscan.io/address/0xeA50f402653c41cAdbaFD1f788341dB7B7F37816)

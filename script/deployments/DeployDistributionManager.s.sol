@@ -13,12 +13,25 @@ contract DeployDistributionManager is Deployment {
     function run() public {
         vm.startBroadcast(deployerPrivateKey);
 
-        IL1GydDistributor distributor = IL1GydDistributor(_getDeployed(GYD_DISTRIBUTOR));
+        IL1GydDistributor distributor = IL1GydDistributor(
+            _getDeployed(GYD_DISTRIBUTOR)
+        );
 
-        bytes memory args =
-            abi.encode(governance, distributor, distributionSubmitter, distributionExecutor, minExecutionDelay);
-        bytes memory creationCode = abi.encodePacked(type(DistributionManager).creationCode, args);
-        address distributionManager = _deploy(DISTRIBUTION_MANAGER, creationCode);
+        bytes memory args = abi.encode(
+            l1Governance,
+            distributor,
+            distributionSubmitter,
+            distributionExecutor,
+            minExecutionDelay
+        );
+        bytes memory creationCode = abi.encodePacked(
+            type(DistributionManager).creationCode,
+            args
+        );
+        address distributionManager = _deploy(
+            DISTRIBUTION_MANAGER,
+            creationCode
+        );
 
         console.log("DistributionManager:", distributionManager);
     }

@@ -14,9 +14,18 @@ contract DeployGydDistributor is Deployment {
         vm.startBroadcast(deployerPrivateKey);
 
         address distributionManager = _getDeployed(DISTRIBUTION_MANAGER);
-        bytes memory args =
-            abi.encode(gyd, governance, distributionManager, maxRate, minimumDistributionInterval, l1EscrowAddress);
-        bytes memory creationCode = abi.encodePacked(type(GydDistributor).creationCode, args);
+        bytes memory args = abi.encode(
+            gyd,
+            l1Governance,
+            distributionManager,
+            maxRate,
+            minimumDistributionInterval,
+            l1EscrowAddress
+        );
+        bytes memory creationCode = abi.encodePacked(
+            type(GydDistributor).creationCode,
+            args
+        );
         address gydDistributor = _deploy(GYD_DISTRIBUTOR, creationCode);
         console.log("GydDistributor:", gydDistributor);
     }

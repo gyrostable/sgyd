@@ -28,7 +28,9 @@ contract GydDistributor is BaseDistributor, IL1GydDistributor {
 
     event GydDistributed(Distribution distribution);
     event MaxRateChanged(uint256 maxRate);
-    event MinimumDistributionIntervalChanged(uint256 minimumDistributionInterval);
+    event MinimumDistributionIntervalChanged(
+        uint256 minimumDistributionInterval
+    );
     event DistributionKeyWhitelisted(bytes32 indexed key, bool whitelisted);
 
     IL1GydEscrow public immutable l1GydEscrow;
@@ -55,14 +57,18 @@ contract GydDistributor is BaseDistributor, IL1GydDistributor {
     }
 
     /// @notice Adds a distribution key to the whitelist
-    function addWhitelistedDistributionKey(bytes32 key) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function addWhitelistedDistributionKey(
+        bytes32 key
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_whitelistedDistributionKeys.add(key)) {
             emit DistributionKeyWhitelisted(key, true);
         }
     }
 
     /// @notice Removes a distribution key from the whitelist
-    function removeWhitelistedDistributionKey(bytes32 key) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function removeWhitelistedDistributionKey(
+        bytes32 key
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         if (_whitelistedDistributionKeys.remove(key)) {
             emit DistributionKeyWhitelisted(key, false);
         }
@@ -72,22 +78,25 @@ contract GydDistributor is BaseDistributor, IL1GydDistributor {
     /// this is a percentage of the total supply of GYD
     /// The rate is designed as a very basic protection against a bug in the distribution logic
     /// but is not designed to be a security feature in the case where `distributeGYD` would be called by a malicious party
-    function setMaxRate(uint256 maxRate_) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function setMaxRate(
+        uint256 maxRate_
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         maxRate = maxRate_;
 
         emit MaxRateChanged(maxRate_);
     }
 
     /// @notice Sets the minimum time between distributions to the same recipient
-    function setMinimumDistributionInterval(uint256 minimumDistributionInterval_)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function setMinimumDistributionInterval(
+        uint256 minimumDistributionInterval_
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
         minimumDistributionInterval = minimumDistributionInterval_;
         emit MinimumDistributionIntervalChanged(minimumDistributionInterval_);
     }
 
-    function getBatchDistributionFee(Distribution[] memory distributions) external view returns (uint256 totalFee) {
+    function getBatchDistributionFee(
+        Distribution[] memory distributions
+    ) external view returns (uint256 totalFee) {
         for (uint256 i; i < distributions.length; i++) {
             if (distributions[i].destinationType == DestinationType.L2) {
                 totalFee += getL2DistributionFee(distributions[i]);
@@ -95,14 +104,28 @@ contract GydDistributor is BaseDistributor, IL1GydDistributor {
         }
     }
 
-    function getL2DistributionFee(Distribution memory distribution) public view returns (uint256) {
+    function getL2DistributionFee(
+        Distribution memory distribution
+    ) public view returns (uint256) {
         if (distribution.destinationType != DestinationType.L2) {
             revert InvalidDestinationType();
         }
 
-        (uint256 chainSelector, Distribution memory data) = abi.decode(distribution.data, (uint256, Distribution));
-        bytes memory calldata_ = abi.encodeWithSelector(IGydDistributor.distributeGYD.selector, data);
-        return l1GydEscrow.getFee(uint64(chainSelector), distribution.recipient, distribution.amount, calldata_);
+        (uint256 chainSelector, Distribution memory data) = abi.decode(
+            distribution.data,
+            (uint256, Distribution)
+        );
+        bytes memory calldata_ = abi.encodeWithSelector(
+            IGydDistributor.distributeGYD.selector,
+            data
+        );
+        return
+            l1GydEscrow.getFee(
+                uint64(chainSelector),
+                distribution.recipient,
+                distribution.amount,
+                calldata_
+            );
     }
 
     /// @notice Mints GYD and distributes it to the recipient
@@ -120,14 +143,18 @@ contract GydDistributor is BaseDistributor, IL1GydDistributor {
     ///     The `distributeGYD` function of the L2 distributor contract will be called with the encoded Distribution data
     ///     when the GYD is bridged to the target chain
     /// @dev The function is payable to allow the contract to send the required amount of ETH to the L1GydEscrow
-    function distributeGYD(Distribution memory distribution) external payable onlyDistributionManager {
+    function distributeGYD(
+        Distribution memory distribution
+    ) external payable onlyDistributionManager {
         uint256 balanceBefore = address(this).balance;
         _distributeGYD(distribution);
         _reimburseUnusedBalance(balanceBefore);
     }
 
     /// @notice same as distributeGYD but can create multiple distributions in a single transaction
-    function batchDistributeGYD(Distribution[] memory distributions) external payable onlyDistributionManager {
+    function batchDistributeGYD(
+        Distribution[] memory distributions
+    ) external payable onlyDistributionManager {
         uint256 balanceBefore = address(this).balance;
         for (uint256 i; i < distributions.length; i++) {
             _distributeGYD(distributions[i]);
@@ -167,21 +194,49 @@ contract GydDistributor is BaseDistributor, IL1GydDistributor {
         emit GydDistributed(distribution);
     }
 
-    function getDistributionKey(Distribution memory distribution) public pure returns (bytes32) {
+    function getDistributionKey(
+        Distribution memory distribution
+    ) public pure returns (bytes32) {
         if (distribution.destinationType == DestinationType.L2) {
-            (uint256 chainSelector, Distribution memory data) = abi.decode(distribution.data, (uint256, Distribution));
-            return keccak256(abi.encodePacked(chainSelector, data.destinationType, data.recipient));
+            (uint256 chainSelector, Distribution memory data) = abi.decode(
+                distribution.data,
+                (uint256, Distribution)
+            );
+            return
+                keccak256(
+                    abi.encodePacked(
+                        chainSelector,
+                        data.destinationType,
+                        data.recipient
+                    )
+                );
         }
-        return keccak256(abi.encodePacked(distribution.destinationType, distribution.recipient));
+        return
+            keccak256(
+                abi.encodePacked(
+                    distribution.destinationType,
+                    distribution.recipient
+                )
+            );
     }
 
-    function getWhitelistedDistributionKeys() public view returns (bytes32[] memory) {
+    function getWhitelistedDistributionKeys()
+        public
+        view
+        returns (bytes32[] memory)
+    {
         return _whitelistedDistributionKeys.values();
     }
 
     function _distributeToL2(Distribution memory distribution) internal {
-        (uint256 chainSelector, Distribution memory data) = abi.decode(distribution.data, (uint256, Distribution));
-        bytes memory calldata_ = abi.encodeWithSelector(IGydDistributor.distributeGYD.selector, data);
+        (uint256 chainSelector, Distribution memory data) = abi.decode(
+            distribution.data,
+            (uint256, Distribution)
+        );
+        bytes memory calldata_ = abi.encodeWithSelector(
+            IGydDistributor.distributeGYD.selector,
+            data
+        );
         if (distribution.amount != data.amount) {
             revert MismatchingAmounts(distribution.amount, data.amount);
         }
@@ -193,7 +248,10 @@ contract GydDistributor is BaseDistributor, IL1GydDistributor {
 
         gyd.approve(address(l1GydEscrow), distribution.amount);
         l1GydEscrow.bridgeToken{value: fee}(
-            uint64(chainSelector), distribution.recipient, distribution.amount, calldata_
+            uint64(chainSelector),
+            distribution.recipient,
+            distribution.amount,
+            calldata_
         );
     }
 

@@ -32,6 +32,15 @@ abstract contract BaseDistributor is
         gyd = gyd_;
     }
 
+    /// @notice Changes the reward distributor for the given gauge
+    /// This should only be done if we are not planning to distribute GYD to the gauge using this contract's instance
+    function setRewardDistributor(
+        ICurveLiquidityGauge gauge,
+        address rewardDistributor
+    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        gauge.set_reward_distributor(address(gyd), rewardDistributor);
+    }
+
     function _distributeTosGYD(Distribution memory distribution) internal {
         (uint256 start, uint256 end) = abi.decode(
             distribution.data,

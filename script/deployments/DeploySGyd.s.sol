@@ -13,20 +13,32 @@ contract DeploySGyd is Deployment {
 
         address gyd_;
         address distributor;
+        address governance;
         if (block.chainid == 1) {
             gyd_ = gyd;
             distributor = _getDeployed(GYD_DISTRIBUTOR);
+            governance = l1Governance;
         } else {
             gyd_ = l2Gyd;
             distributor = _getDeployed(L2_GYD_DISTRIBUTOR);
+            governance = l2Governance;
         }
         console.log("gyd", gyd_);
         console.log("distributor", distributor);
+        console.log("governance", governance);
 
         sGYD sgyd = new sGYD();
 
-        bytes memory data = abi.encodeWithSelector(sGYD.initialize.selector, gyd_, governance, distributor);
-        bytes memory creationCode = abi.encodePacked(type(UUPSProxy).creationCode, abi.encode(address(sgyd), data));
+        bytes memory data = abi.encodeWithSelector(
+            sGYD.initialize.selector,
+            gyd_,
+            governance,
+            distributor
+        );
+        bytes memory creationCode = abi.encodePacked(
+            type(UUPSProxy).creationCode,
+            abi.encode(address(sgyd), data)
+        );
         console.log("sgyd", _deploy(SGYD, creationCode));
     }
 }

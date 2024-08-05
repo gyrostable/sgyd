@@ -6,4 +6,9 @@ interface ICurveLiquidityGauge {
         address _reward_token,
         uint256 _amount
     ) external;
+
+    function set_reward_distributor(
+        address _reward_token,
+        address _distributor
+    ) external;
 }
