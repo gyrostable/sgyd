@@ -6,7 +6,7 @@
 
 * `DistributionExecutor` (Gnosis safe): [0xaA2379d779763EE69FD4595272A1c6C31F8E20B4](https://etherscan.io/address/0xaA2379d779763EE69FD4595272A1c6C31F8E20B4)
 
-* `DistributionManager`: [0x4d9c765d7431ff354d208cf9a37e7186180e6586](https://etherscan.io/address/0x4d9c765d7431ff354d208cf9a37e7186180e6586)
+* `DistributionManager`: [0x4D9C765D7431fF354d208CF9A37e7186180e6586](https://etherscan.io/address/0x4d9c765d7431ff354d208cf9a37e7186180e6586)
 
 * `GydDistributor`: [`0xc1024e475E357375E16c7F86fE46cbc6fFB0561D`](https://etherscan.io/address/0xc1024e475e357375e16c7f86fe46cbc6ffb0561d)
 
