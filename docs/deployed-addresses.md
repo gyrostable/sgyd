@@ -2,9 +2,9 @@
 
 ## Ethereum Mainnet
 
-* `DistributionSubmitter` (EOA): [0x2A1ef5110063D3F078b66A93C8e925df1E01aB80](https://etherscan.io/address/0x2A1ef5110063D3F078b66A93C8e925df1E01aB80)
+* `DistributionSubmitter` (EOA): [0xb0307AB3e2C0886a70b2C84897Bca7Ee9b237a50](https://etherscan.io/address/0xb0307AB3e2C0886a70b2C84897Bca7Ee9b237a50)
 
-* `DistributionExecutor` (Gnosis safe): [0xaA2379d779763EE69FD4595272A1c6C31F8E20B4](https://etherscan.io/address/0xaA2379d779763EE69FD4595272A1c6C31F8E20B4)
+* `DistributionExecutor` (Gnosis safe): [0xA8D612739354a4106072a91aA4Ca1458E1b5f9e9](https://etherscan.io/address/0xA8D612739354a4106072a91aA4Ca1458E1b5f9e9)
 
 * `DistributionManager`: [0x4D9C765D7431fF354d208CF9A37e7186180e6586](https://etherscan.io/address/0x4d9c765d7431ff354d208cf9a37e7186180e6586)
 
