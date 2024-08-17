@@ -95,7 +95,7 @@ contract sGydStakerTest is UnitTest {
         sgydStaker.claimRewards();
 
         skip(18 hours);
-        vm.prank(admin);
+        vm.prank(treasury);
         sgydStaker.stopMining();
         _startMining(rewardAmount * 2);
         skip(24 hours);
@@ -126,7 +126,7 @@ contract sGydStakerTest is UnitTest {
         rewardToken.mint(treasury, rewardAmount);
         vm.prank(treasury);
         rewardToken.approve(address(sgydStaker), rewardAmount);
-        vm.prank(admin);
+        vm.prank(treasury);
         sgydStaker.startMining(treasury, rewardAmount, block.timestamp + 1 days);
     }
 }

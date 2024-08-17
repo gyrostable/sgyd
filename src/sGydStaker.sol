@@ -14,6 +14,13 @@ contract sGydStaker is
     LiquidityMining,
     UUPSUpgradeable
 {
+    error NotAuthorized();
+
+    modifier onlyTreasury() {
+        if (msg.sender != daoTreasury) revert NotAuthorized();
+        _;
+    }
+
     constructor() {
         _disableInitializers();
     }
@@ -44,15 +51,11 @@ contract sGydStaker is
         _unstake(receiver, shares);
     }
 
-    function startMining(address rewardsFrom, uint256 amount, uint256 endTime)
-        external
-        override
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function startMining(address rewardsFrom, uint256 amount, uint256 endTime) external override onlyTreasury {
         _startMining(rewardsFrom, amount, endTime);
     }
 
-    function stopMining() external override onlyRole(DEFAULT_ADMIN_ROLE) {
+    function stopMining() external override onlyTreasury {
         _stopMining();
     }
 }
