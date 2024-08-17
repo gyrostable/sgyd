@@ -23,7 +23,7 @@ contract sGydStaker is
         initializer
     {
         __UUPSUpgradeable_init();
-        __ERC20_init("Staked sGYD", "ssGYD");
+        __ERC20_init("Staked sGYD", "st-sGYD");
         __ERC4626_init(_depositToken);
         __AccessControlDefaultAdminRules_init(0, _initialAdmin);
         __LiquidityMining_init(address(_rewardToken), _daoTreasury);
