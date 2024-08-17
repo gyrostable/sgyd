@@ -10,11 +10,11 @@ contract Deployment is Script {
     string public constant GYD_DISTRIBUTOR = "GydDistributorV1";
     string public constant L2_GYD_DISTRIBUTOR = "L2GydDistributorV1";
     string public constant SGYD = "sGYD";
+    string public constant SGYD_STAKER = "sGydStaker";
     string public constant DISTRIBUTION_MANAGER = "GydDistributionManagerV1";
 
     // https://etherscan.io/address/0x93FEC2C00BfE902F733B57c5a6CeeD7CD1384AE1
-    ICREATE3Factory public factory =
-        ICREATE3Factory(0x93FEC2C00BfE902F733B57c5a6CeeD7CD1384AE1);
+    ICREATE3Factory public factory = ICREATE3Factory(0x93FEC2C00BfE902F733B57c5a6CeeD7CD1384AE1);
 
     // https://etherscan.io/address/0x78EcF97572c3890eD02221A611014F30219f6219
     address public l1Governance = 0x78EcF97572c3890eD02221A611014F30219f6219;
@@ -35,12 +35,10 @@ contract Deployment is Script {
     address public deployer = 0x8bc920001949589258557412A32F8d297A74F244;
 
     // https://etherscan.io/address/0xA8D612739354a4106072a91aA4Ca1458E1b5f9e9
-    address public distributionExecutor =
-        0xA8D612739354a4106072a91aA4Ca1458E1b5f9e9;
+    address public distributionExecutor = 0xA8D612739354a4106072a91aA4Ca1458E1b5f9e9;
 
     // https://etherscan.io/address/0xb0307AB3e2C0886a70b2C84897Bca7Ee9b237a50
-    address public distributionSubmitter =
-        0xb0307AB3e2C0886a70b2C84897Bca7Ee9b237a50;
+    address public distributionSubmitter = 0xb0307AB3e2C0886a70b2C84897Bca7Ee9b237a50;
 
     uint256 public deployerPrivateKey;
 
@@ -48,10 +46,7 @@ contract Deployment is Script {
         deployerPrivateKey = uint256(vm.envBytes32("PRIVATE_KEY"));
     }
 
-    function _deploy(
-        string memory name,
-        bytes memory creationCode
-    ) internal returns (address) {
+    function _deploy(string memory name, bytes memory creationCode) internal returns (address) {
         bytes32 salt = keccak256(bytes(name));
         return factory.deploy(salt, creationCode);
     }

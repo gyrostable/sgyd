@@ -5,4 +5,8 @@ library ScaledMath {
     function mul(uint256 a, uint256 b) internal pure returns (uint256) {
         return (a * b) / 1e18;
     }
+
+    function div(uint256 a, uint256 b) internal pure returns (uint256) {
+        return (a * 1e18) / b;
+    }
 }
