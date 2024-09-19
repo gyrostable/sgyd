@@ -14,7 +14,12 @@
 
 ## Arbitrum
 
-
 * `L2GydDistributor`: [0x4Dfdad359bd4c154dD307350582C4bff636Ba299](https://arbiscan.io/address/0x4Dfdad359bd4c154dD307350582C4bff636Ba299)
 
 * `sGYD`: [0xeA50f402653c41cAdbaFD1f788341dB7B7F37816](https://arbiscan.io/address/0xeA50f402653c41cAdbaFD1f788341dB7B7F37816)
+
+## Optimism
+
+* `L2GydDistributor`: [0x4Dfdad359bd4c154dD307350582C4bff636Ba299](https://optimistic.etherscan.io/address/0x4Dfdad359bd4c154dD307350582C4bff636Ba299)
+
+* `sGYD`: [0xeA50f402653c41cAdbaFD1f788341dB7B7F37816](https://optimistic.etherscan.io/address/0xeA50f402653c41cAdbaFD1f788341dB7B7F37816)
